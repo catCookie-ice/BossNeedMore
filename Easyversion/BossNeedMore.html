@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片查看器 - 智能下载修复版</title>
+    <style>
+        :root {
+            --primary-color: #0078d4;
+            --bg-color: #f3f3f3;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s, transform 0.1s;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-new {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-new:hover {
+            background-color: #006cc1;
+        }
+
+        .btn-clear {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background-color: #d0d0d0;
+        }
+
+        .btn-download {
+            background-color: #2b88d8;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background-color: #2070b0;
+        }
+
+        .image-frame {
+            width: 100%;
+            min-height: 300px;
+            border: 2px dashed #ddd;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .image-frame:hover {
+            border-color: var(--primary-color);
+        }
+
+        .image-frame img {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            display: none;
+            pointer-events: auto;
+        }
+
+        .placeholder {
+            color: #999;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-buttons button {
+            flex: 1;
+        }
+        
+        .status-message {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            min-height: 1.5em;
+            margin-top: -10px;
+            white-space: pre-wrap;
+        }
+
+        /* Toast 提示样式 */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000; /* 确保在全屏图之上 */
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <select id="urlSelect">
+            <!-- JS自动填充 -->
+        </select>
+        <button class="btn-new" id="btnNew">获取新图片</button>
+    </div>
+
+    <div class="image-frame" id="imageFrame" title="点击查看">
+        <span class="placeholder" id="placeholder">图片将显示在这里</span>
+        <img id="displayImg" src="" alt="Display">
+    </div>
+    
+    <div class="status-message" id="statusMessage"></div>
+
+    <div class="action-buttons">
+        <button class="btn-clear" id="btnClear">清空图片</button>
+        <button class="btn-download" id="btnDownload">下载图片</button>
+    </div>
+</div>
+
+<!-- Toast 提示元素 -->
+<div id="toast" class="toast">提示信息</div>
+
+<script>
+    // 图片源配置表
+    const imageSources = [
+        {
+            text: "Picsum (支持CORS)",
+            value: "https://picsum.photos/600/400?{{timestamp}}",
+            clickAction: 'fullscreen',   // 点击行为：全屏
+            showDownload: true
+        },
+        {
+            text: "樱花(二次元 - 支持CORS)",
+            value: "https://www.dmoe.cc/random.php?{{timestamp}}",
+            clickAction: 'none',
+            showDownload: false
+        },
+        {
+            text: "搏天api(真人 - 响应慢)",
+            value: "https://api.btstu.cn/sjbz/api.php?{{timestamp}}",
+            clickAction: 'fullscreen',
+            showDownload: true
+        },
+        {
+            text: "保罗(二次元 - 响应慢)",
+            value: "https://api.paugram.com/wallpaper/?{{timestamp}}",
+            clickAction: 'fullscreen',
+            showDownload: true
+        },
+        {
+            text: "墨天逸(二次元 - 响应慢)",
+            value: "https://api.mtyqx.cn/tapi/random.php?{{timestamp}}",
+            clickAction: 'none',
+            showDownload: false
+        },
+        {
+            text: "岁月小筑(二次元 - 支持CORS)",
+            value: "https://img.xjh.me/random_img.php?return=302&{{timestamp}}",
+            clickAction: 'none',
+            showDownload: false
+        },
+    ];
+
+    // 获取DOM元素
+    const urlSelect = document.getElementById('urlSelect');
+    const btnNew = document.getElementById('btnNew');
+    const btnClear = document.getElementById('btnClear');
+    const btnDownload = document.getElementById('btnDownload');
+    const displayImg = document.getElementById('displayImg');
+    const placeholder = document.getElementById('placeholder');
+    const imageFrame = document.getElementById('imageFrame');
+    const statusMessage = document.getElementById('statusMessage');
+    const toast = document.getElementById('toast');
+
+    let currentImageUrl = '';
+    let finalImageBlobUrl = ''; 
+
+    // 显示 Toast 提示
+    function showToast(message) {
+        toast.textContent = message;
+        toast.className = "toast show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    // 自动填充下拉列表
+    function populateSelect(selectElement, data) {
+        selectElement.innerHTML = '';
+        data.forEach(item => {
+            selectElement.add(new Option(item.text, item.value));
+        });
+    }
+    populateSelect(urlSelect, imageSources);
+
+    // 获取当前选择的图片源配置
+    function getCurrentSourceConfig() {
+        const currentValue = urlSelect.value;
+        return imageSources.find(source => source.value === currentValue) || imageSources[0];
+    }
+
+    // 处理时间戳
+    function processUrlWithTimestamp(baseUrl) {
+        if (!baseUrl) return '';
+        if (baseUrl.includes('{{timestamp}}')) {
+            const timestamp = new Date().getTime();
+            return baseUrl.replace('{{timestamp}}', timestamp);
+        }
+        return baseUrl;
+    }
+
+    // 更新UI状态
+    function updateUIState() {
+        const config = getCurrentSourceConfig();
+        if (config.showDownload) {
+            btnDownload.style.display = 'block';
+        } else {
+            btnDownload.style.display = 'none';
+        }
+    }
+
+    // 获取新图片
+    btnNew.addEventListener('click', async () => {
+        const baseUrl = urlSelect.value;
+        if (!baseUrl) return;
+
+        const finalUrl = processUrlWithTimestamp(baseUrl);
+        currentImageUrl = finalUrl;
+
+        // 修复点：开始新加载时，强制重置 blob URL，防止使用旧数据
+        finalImageBlobUrl = ''; 
+        
+        statusMessage.textContent = '正在加载图片...';
+        
+        displayImg.style.display = 'none';
+        placeholder.style.display = 'block';
+        btnDownload.disabled = true;
+        btnDownload.textContent = '下载图片';
+
+        try {
+            // 策略1: 尝试通过fetch获取图片blob
+            const response = await fetch(finalUrl);
+            if (!response.ok) throw new Error('网络请求失败');
+            
+            const blob = await response.blob();
+            finalImageBlobUrl = window.URL.createObjectURL(blob);
+            
+            displayImg.onload = function() {
+                statusMessage.textContent = '';
+                displayImg.style.display = 'block';
+                placeholder.style.display = 'none';
+                updateUIState();
+                btnDownload.disabled = false;
+            };
+            
+            displayImg.onerror = function() {
+                statusMessage.textContent = '图片加载失败，请尝试更换图片源。';
+                showToast('图片加载失败');
+                if (finalImageBlobUrl) {
+                    window.URL.revokeObjectURL(finalImageBlobUrl);
+                    finalImageBlobUrl = '';
+                }
+                btnDownload.disabled = true;
+            };
+
+            displayImg.src = finalImageBlobUrl;
+            
+        } catch (error) {
+            console.error('加载图片出错:', error);
+            statusMessage.textContent = '直接加载中...';
+            
+            // 策略2: 降级为直接设置src（此时finalImageBlobUrl为空）
+            displayImg.onload = function() {
+                statusMessage.textContent = '';
+                displayImg.style.display = 'block';
+                placeholder.style.display = 'none';
+                updateUIState();
+                btnDownload.disabled = false;
+            };
+            
+            displayImg.onerror = function() {
+                statusMessage.textContent = '图片加载失败，请尝试更换图片源。';
+                showToast('图片加载失败');
+                btnDownload.disabled = true;
+            };
+
+            displayImg.src = finalUrl;
+        }
+    });
+
+    // 清空图片
+    btnClear.addEventListener('click', () => {
+        displayImg.src = '';
+        displayImg.style.display = 'none';
+        placeholder.style.display = 'block';
+        currentImageUrl = '';
+        if (finalImageBlobUrl) {
+            window.URL.revokeObjectURL(finalImageBlobUrl);
+            finalImageBlobUrl = '';
+        }
+        statusMessage.textContent = '';
+        btnDownload.disabled = true;
+        btnDownload.textContent = '下载图片';
+        updateUIState(); 
+    });
+
+    // 图片点击事件处理 (修复逻辑)
+    displayImg.addEventListener('click', async () => {
+        if (!displayImg.src || displayImg.style.display === 'none') return;
+
+        const config = getCurrentSourceConfig();
+
+        if (config.clickAction === 'fullscreen') {
+            // 修复点：全屏逻辑增强
+            if (finalImageBlobUrl) {
+                // 情况A: 已有 Blob，直接全屏
+                createFullscreenImage(finalImageBlobUrl);
+            } else {
+                // 情况B: 没有 Blob (可能是直接加载模式)，尝试获取 Blob 以支持全屏
+                try {
+                    showToast('正在准备全屏...');
+                    const response = await fetch(currentImageUrl);
+                    if (!response.ok) throw new Error('无法获取图片');
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    createFullscreenImage(blobUrl);
+                    // 注意：这里创建的临时blobUrl在关闭全屏时会被销毁，不需要存在全局变量中
+                } catch (e) {
+                    console.error(e);
+                    showToast('全屏准备失败，尝试在新窗口打开');
+                    // 最后的降级：如果连fetch都失败，才新窗口打开
+                    window.open(currentImageUrl, '_blank');
+                }
+            }
+
+        } 
+    });
+
+    // 辅助函数：创建全屏图片
+    function createFullscreenImage(url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.width = '100vw';
+        img.style.height = '100vh';
+        img.style.objectFit = 'contain';
+        img.style.position = 'fixed';
+        img.style.top = '0';
+        img.style.left = '0';
+        img.style.zIndex = '9999';
+        img.style.backgroundColor = 'rgba(0,0,0,0.9)';
+        img.style.cursor = 'zoom-out';
+        
+        // 点击关闭全屏
+        img.onclick = () => {
+            // 如果是blob:开头的临时链接，关闭时释放内存
+            if (url.startsWith('blob:') && url !== finalImageBlobUrl) {
+                window.URL.revokeObjectURL(url);
+            }
+            if (document.body.contains(img)) {
+                document.body.removeChild(img);
+            }
+        };
+        
+        document.body.appendChild(img);
+    }
+
+    // 下载按钮点击事件处理
+    btnDownload.addEventListener('click', async () => {
+        if (!displayImg.src || displayImg.style.display === 'none') {
+            showToast('请先加载一张图片');
+            return;
+        }
+
+        btnDownload.disabled = true;
+        const originalText = btnDownload.textContent;
+        btnDownload.textContent = '下载中...';
+        statusMessage.textContent = '正在准备下载...';
+
+        try {
+            if (finalImageBlobUrl) {
+                const response = await fetch(finalImageBlobUrl);
+                if (!response.ok) throw new Error('Blob请求失败');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                const filename = `image_${new Date().getTime()}.${blob.type.split('/')[1] || 'png'}`;
+                a.download = filename;
+
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                statusMessage.textContent = '';
+                showToast('下载已开始');
+            } else {
+                const response = await fetch(currentImageUrl);
+                if (!response.ok) throw new Error('网络请求失败');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                const filename = `image_${new Date().getTime()}.${blob.type.split('/')[1] || 'png'}`;
+                a.download = filename;
+
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                statusMessage.textContent = '';
+                showToast('下载已开始');
+            }
+            
+        } catch (error) {
+            console.error('下载失败:', error);
+            let errorMessage = '下载失败。';
+            
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.name === 'TypeError') {
+                errorMessage += '\n原因：服务器不支持CORS或网络错误。\n建议：更换图片源或尝试新窗口打开。';
+            } else {
+                errorMessage += '\n原因：' + error.message;
+            }
+            
+            statusMessage.textContent = errorMessage;
+            showToast('下载失败');
+            
+            setTimeout(() => {
+                if (confirm('下载失败')) {
+                    window.open(currentImageUrl, '_blank');
+                }
+            }, 100);
+        } finally {
+            btnDownload.disabled = false;
+            btnDownload.textContent = originalText;
+        }
+    });
+</script>
+
+</body>
+</html>
