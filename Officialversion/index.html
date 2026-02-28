@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老大说:更多!</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <select id="urlSelect">
+            <!-- JS自动填充 -->
+        </select>
+        <button class="btn-new" id="btnNew">获取新图片</button>
+    </div>
+
+    <div class="image-frame" id="imageFrame" title="点击查看">
+        <span class="placeholder" id="placeholder">图片将显示在这里</span>
+        <img id="displayImg" src="" alt="Display">
+    </div>
+    
+    <div class="status-message" id="statusMessage"></div>
+
+    <div class="action-buttons">
+        <button class="btn-clear" id="btnClear">清空图片</button>
+        <button class="btn-download" id="btnDownload">下载图片</button>
+    </div>
+</div>
+
+
+<div id="toast" class="toast">提示信息</div>
+
+<script src="script.js"></script>
+</body>
+</html>

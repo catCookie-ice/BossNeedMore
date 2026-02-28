@@ -1,0 +1,163 @@
+:root {
+    --primary-color: #0078d4;
+    --bg-color: #f3f3f3;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --border-radius: 8px;
+}
+
+body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--text-color);
+}
+
+.container {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+select {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s, transform 0.1s;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.btn-new {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-new:hover {
+    background-color: #006cc1;
+}
+
+.btn-clear {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.btn-clear:hover {
+    background-color: #d0d0d0;
+}
+
+.btn-download {
+    background-color: #2b88d8;
+    color: white;
+}
+
+.btn-download:hover {
+    background-color: #2070b0;
+}
+
+.image-frame {
+    width: 100%;
+    min-height: 300px;
+    border: 2px dashed #ddd;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    background-color: #fafafa;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.image-frame:hover {
+    border-color: var(--primary-color);
+}
+
+.image-frame img {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    display: none;
+    pointer-events: auto;
+}
+
+.placeholder {
+    color: #999;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-buttons button {
+    flex: 1;
+}
+
+.status-message {
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+    min-height: 1.5em;
+    margin-top: -10px;
+    white-space: pre-wrap;
+}
+
+/* Toast 提示样式 */
+.toast {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+}
